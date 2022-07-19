@@ -1,12 +1,15 @@
-#include <math.h>
 #include "player.h"
 
 
-Player::Player() : dir(Vector2d(0,0)), pos(Vector2d(0,0)) {};
+Player::Player() : direction(Vector2d(0,0)), position(Vector2d(0,0)), cameraPlane(Vector2d(0,0)) {};
 
-Player::Player(Vector2d dirV, Vector2d posV)
+Player::Player(Vector2d playerDirection, Vector2d playerPosition, Vector2d playerCameraPlane)
 {
-    dir = dirV; pos = posV;
+    direction = playerDirection;
+    position = playerPosition;
+    cameraPlane = playerCameraPlane;
 }
 
-void Player::rotate(double deg) { dir.rotateByDeg(deg); cameraPlane.rotateByDeg(deg); }
+void Player::rotate(double deg) { direction.rotateByDeg(deg); cameraPlane.rotateByDeg(deg); }
+
+void Player::cameraFix() { cameraPlane = Vector2d(direction.y, -direction.x); }

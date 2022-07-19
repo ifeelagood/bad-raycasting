@@ -1,6 +1,5 @@
-
-#include <math.h>
 #include "vector2d.h"
+#include <math.h>
 
 
 double Vector2d::distance(Vector2d b) { return std::sqrt((b.x - x)*(b.x - x) + (b.y - y)*(b.y - y)); }

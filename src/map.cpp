@@ -1,7 +1,9 @@
 #include "map.h"
-#include <string>
 
-int** loadMap(std::string path, int &MAP_WIDTH, int &MAP_HEIGHT)
+#include <iostream>
+#include <fstream>
+
+int** loadMap(std::string path, unsigned long &mapWidth, unsigned long &mapHeight)
 {
     std::ifstream mapFile;
     mapFile.open(path);
@@ -9,29 +11,25 @@ int** loadMap(std::string path, int &MAP_WIDTH, int &MAP_HEIGHT)
     std::string line;
 
     // determine dimesions
-    int mapX, mapY;
 
-    mapY = 0;
+    mapHeight = 0;
     if ( mapFile.is_open() )
     {
         char c;
         while (std::getline(mapFile, line))
         {
-            mapY++;
-            mapX = line.length();
+            mapHeight++;
+            mapWidth = line.length();
         }
     }
 
     mapFile.close();
 
-    MAP_WIDTH = mapX;
-    MAP_HEIGHT = mapY;
-
     // create map array
-    int** map = new int*[MAP_HEIGHT];
-    for (int i = 0; i < MAP_HEIGHT; i++)
+    int** map = new int*[mapHeight];
+    for (int i = 0; i < mapHeight; i++)
     {
-        map[i] = new int[MAP_WIDTH];
+        map[i] = new int[mapWidth];
     }
 
     // populate map
@@ -46,7 +44,7 @@ int** loadMap(std::string path, int &MAP_WIDTH, int &MAP_HEIGHT)
         while (std::getline(mapFile, line))
         {
 
-            for (x = 0; x < MAP_WIDTH; x++)
+            for (x = 0; x < mapWidth; x++)
             {
                 map[y][x] = (int) line[x] - 48;
             }
@@ -58,9 +56,9 @@ int** loadMap(std::string path, int &MAP_WIDTH, int &MAP_HEIGHT)
     return map;
 }
 
-void deleteMap(int** map, int MAP_WIDTH, int MAP_HEIGHT)
+void unloadMap(int** map, unsigned long mapWidth, unsigned long mapHeight)
 {
-    for (int i = 0; i < MAP_HEIGHT; i++)
+    for (int i = 0; i < mapHeight; i++)
     {
         delete[] map[i];
     }

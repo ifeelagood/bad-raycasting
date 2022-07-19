@@ -1,17 +1,6 @@
-#ifndef VECTOR2D_H
-#define VECTOR2D_H
+#pragma once
 
 #define PI 3.141592653589
-
-class Vector2i
-{
-public:
-    int x, y;
-
-    Vector2i() : x(0), y(0) {};
-    Vector2i(int vx, int vy) : x(vx), y(vy) {};
-};
-
 
 class Vector2d
 {
@@ -44,6 +33,15 @@ public:
 
 };
 
+class Vector2i
+{
+public:
+    int x, y;
+
+    Vector2i() : x(0), y(0) {};
+    Vector2i(int vx, int vy) : x(vx), y(vy) {};
+};
+
 
 double deg2rad(double deg);
 double rad2deg(double rad);
@@ -52,7 +50,14 @@ void fixRad(double &rad);
 void fixDeg(double &deg);
 
 
-Vector2d translate(Vector2d positino, Vector2d direction, double distance);
+Vector2d translate(Vector2d position, Vector2d direction, double distance);
 
 
-#endif
+template <class T>
+class Vector2
+{
+public:
+    T x,y;
+    Vector2<T>();
+    Vector2(T _x, T _y) : x(_x), y(_y) {};
+};

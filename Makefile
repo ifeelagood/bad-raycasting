@@ -1,29 +1,14 @@
 CC = g++
-CCFLAGS := -lGL -lGLU -lglut -fopenmp
+CCFLAGS = -O3 -lSDL2 -fopenmp -lpng -lz
 
-SRC_PATH := src
-BIN_PATH := bin
-INC_PATH := include
+SRC_PATH = src
+BIN_PATH = bin
+INC_PATH = include
 
-TARGET_NAME := raycaster
-TARGET := $(BIN_PATH)/$(TARGET_NAME)
+TARGET_NAME = raycaster
+TARGET = $(BIN_PATH)/$(TARGET_NAME)
 
-SRC := $(foreach x, $(SRC_PATH), $(wildcard $(addprefix $(x)/*,.cpp)))
-
-default: makedir all
+SRC = $(foreach x, $(SRC_PATH), $(wildcard $(addprefix $(x)/*,.cpp)))
 
 $(TARGET): $(SRC)
-	$(CC) -o $(TARGET) $(SRC) $(CCFLAGS) -I$(INC_PATH)
-
-
-.PHONY: makedir
-makedir:
-	@mkdir -p $(BIN_PATH)
-
-.PHONY: all
-all: $(TARGET)
-
-.PHONY: clean
-clean:
-	@echo CLEAN $(CLEAN_LIST)
-	@rm -f $(CLEAN_LIST)
+	$(CC) -o $(TARGET) $(SRC) -I$(INC_PATH) $(CCFLAGS)
