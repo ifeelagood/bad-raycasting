@@ -11,32 +11,15 @@
 #include "ini.h"
 #include "timer.h"
 #include "loadpng.h"
-#include "config.h"
 
 
 #include "main.h"
 
-Config config("config.ini");
-
-unsigned int mapWidth, mapHeight;
-unsigned int texWidth, texHeight;
-
-bool done = false;
-
-std::vector<std::vector<uint32_t>> texture;
-
-Timer timer;
-ButtonKeys Keys;
-Player player;
-
-int level = 1;
-
-int** map;
 
 uint32_t** createBuffer()
 {
-    int h = (int) config.ScreenHeight;
-    int w = (int) config.ScreenWidth;
+    int& h = config.ScreenHeight;
+    int& w = config.ScreenWidth;
 
     uint32_t** buffer = new uint32_t*[h];
 
@@ -50,8 +33,8 @@ uint32_t** createBuffer()
 
 void deleteBuffer(uint32_t** buffer)
 {
-    int h = (int) config.ScreenHeight;
-    int w = (int) config.ScreenWidth;
+    int& h = config.ScreenHeight;
+    // int& w = config.ScreenWidth;
 
     for (int i = 0; i < h; i++)
     {
@@ -63,9 +46,12 @@ void deleteBuffer(uint32_t** buffer)
 
 void clearBuffer(uint32_t** buffer)
 {
-    for (int y = 0; y < (int) screenHeight; y++)
+    int& h = config.ScreenHeight;
+    int& w = config.ScreenWidth;
+
+    for (int y = 0; y < h; y++)
     {
-        for (int x = 0; x < (int) screenWidth; x++)
+        for (int x = 0; x < w; x++)
         {
             buffer[y][x] = 0;
         }
@@ -116,8 +102,8 @@ void movePlayer(double moveSpeed)
 void handleInput(Player &player)
 {
 
-    double deltaMoveSpeed = MOVESPEED * timer.frameTime;
-    double deltaRotSpeed  = ROTSPEED  * timer.frameTime;
+    double deltaMoveSpeed = config.MoveSpeed * timer.frameTime;
+    double deltaRotSpeed  = config.RotationSpeed * timer.frameTime;
 
 
     // left or right
@@ -140,78 +126,73 @@ double DDA(Vector2d &rayPosition, Vector2d &rayDirection, int &side, int &tile)
 
     Vector2d rayStep;
 
-        rayStep.x = (rayDirection.x == 0) ? 1e30 : std::abs(1 / rayDirection.x);
-        rayStep.y = (rayDirection.y == 0) ? 1e30 : std::abs(1 / rayDirection.y);
+    // calculate the distance of x for 1 unit of y and vise versa
+    rayStep.x = (rayDirection.x == 0) ? 1e30 : std::abs(1 / rayDirection.x);
+    rayStep.y = (rayDirection.y == 0) ? 1e30 : std::abs(1 / rayDirection.y);
 
+    // find step direction for map and set initial nextSideDistace based on direction and position
+    Vector2d nextSideDistance;
+    Vector2i mapStep;
 
-        // is it horizontal or vertical?
-        Vector2d nextSideDistance;
-        Vector2i mapStep;
+    if (rayDirection.x < 0)
+    {
+        mapStep.x = -1;
+        nextSideDistance.x = (player.position.x - mapPosition.x) * rayStep.x;
+    }
+    else
+    {
+        mapStep.x = 1;
+        nextSideDistance.x = (mapPosition.x - player.position.x + 1.0f) * rayStep.x;
+    }
 
-        if (rayDirection.x < 0)
+    if (rayDirection.y < 0)
+    {
+        mapStep.y = -1;
+        nextSideDistance.y = (player.position.y - mapPosition.y) * rayStep.y;
+    }
+    else
+    {
+        mapStep.y = 1;
+        nextSideDistance.y = (mapPosition.y - player.position.y + 1.0f) * rayStep.y;
+    }
+
+    // perform DDA loop
+    bool hit = false;
+    while (!hit)
+    {
+        // move in direction based on larger distance
+        if (nextSideDistance.x < nextSideDistance.y)
         {
-            mapStep.x = -1;
-            nextSideDistance.x = (player.position.x - mapPosition.x) * rayStep.x;
+            nextSideDistance.x += rayStep.x;
+            mapPosition.x += mapStep.x;
+            side = 0;
         }
         else
         {
-            mapStep.x = 1;
-            nextSideDistance.x = (mapPosition.x - player.position.x + 1.0f) * rayStep.x;
+            nextSideDistance.y += rayStep.y;
+            mapPosition.y += mapStep.y;
+            side = 1;
         }
 
-        if (rayDirection.y < 0)
-        {
-            mapStep.y = -1;
-            nextSideDistance.y = (player.position.y - mapPosition.y) * rayStep.y;
-        }
-        else
-        {
-            mapStep.y = 1;
-            nextSideDistance.y = (mapPosition.y - player.position.y + 1.0f) * rayStep.y;
-        }
+        tile = getMapTile(mapPosition.x, mapPosition.y);
 
-        // perform DDA loop
-        bool hit = 0;
+        hit = (tile > 0);
+    }
 
-
-        while (hit == 0)
-        {
-            // jump to next map square
-            if (nextSideDistance.x < nextSideDistance.y)
-            {
-                nextSideDistance.x += rayStep.x;
-                mapPosition.x += mapStep.x;
-                side = 0;
-            }
-            else
-            {
-                nextSideDistance.y += rayStep.y;
-                mapPosition.y += mapStep.y;
-                side = 1;
-            }
-
-            tile = getMapTile(mapPosition.x, mapPosition.y);
-
-            hit = (tile > 0);
-        }
-
-        // calculate distance of perpendicular ray
-
-        // std::cout << nextSideDistance.x << ',' << nextSideDistance.y << '\n';
-
-		double perpendicularWallDistance;
-        if (side == 0) { perpendicularWallDistance = (nextSideDistance.x - rayStep.x); }
-		else           { perpendicularWallDistance = (nextSideDistance.y - rayStep.y); }
+    // calculate the wall distance, as euclidian distance produces fisheye
+    double perpendicularWallDistance;
+    if (side == 0) { perpendicularWallDistance = (nextSideDistance.x - rayStep.x); }
+    else           { perpendicularWallDistance = (nextSideDistance.y - rayStep.y); }
 
     return perpendicularWallDistance;
 }
 
 void drawRays3D(uint32_t** buffer)
 {
-    for (int x = 0; x < screenWidth; x++)
+    for (int x = 0; x < config.ScreenWidth; x++)
     {
         // determine vector for ray
-        double cameraX = 2 * (double)x / (double)screenWidth - 1;
+        double cameraX = 2 * (double)x / (double)config.ScreenWidth - 1;
 
         Vector2d rayPosition = player.position;
         Vector2d rayDirection = player.direction + player.cameraPlane * cameraX;
@@ -222,18 +203,18 @@ void drawRays3D(uint32_t** buffer)
         double perpendicularWallDistance = DDA(rayPosition, rayDirection, side, tile);
 
         // calculate wall height
-        int lineHeight = (int)(screenHeight / perpendicularWallDistance);
+        int lineHeight = (int)(config.ScreenHeight / perpendicularWallDistance);
 
 
         // ???????
         int pitch = 100;
 
         // determine y1 and y2 (top and bottom pixel)
-        int y1 = -lineHeight / 2 + screenHeight / 2 + pitch;
-        int y2 =  lineHeight / 2 + screenHeight / 2 + pitch;
+        int y1 = -lineHeight / 2 + config.ScreenHeight / 2 + pitch;
+        int y2 =  lineHeight / 2 + config.ScreenHeight / 2 + pitch;
 
         if (y1 < 0)             { y1 = 0;                }
-        if (y2 >= screenHeight) { y2 = screenHeight - 1; }
+        if (y2 >= config.ScreenHeight) { y2 = config.ScreenHeight - 1; }
 
         // texture calculations
 
@@ -251,7 +232,7 @@ void drawRays3D(uint32_t** buffer)
 
         // more texture calculations
         double texStep = 1.0 * texHeight / lineHeight;
-        double texOffset = (y1 - pitch - (screenHeight / 2) + (lineHeight / 2)) * texStep;
+        double texOffset = (y1 - pitch - (config.ScreenHeight / 2) + (lineHeight / 2)) * texStep;
 
         int texID = tile - 1; // so we can use 0th texture
 
@@ -274,14 +255,16 @@ void drawRays3D(uint32_t** buffer)
 void drawDebug()
 {
     std::string fps_str = "FPS: " + std::to_string(timer.fps);
+    std::string avg_str = "AVG FPS / 10s: " + std::to_string(timer.getAverageFPS());
     std::string ftm_str = "Frametime: " + std::to_string(timer.frameTime);
     std::string dir_str = "Directon: [" + std::to_string(player.direction.x) + ',' + std::to_string(player.direction.y) + ']';
     std::string cam_str = "Camera: [" + std::to_string(player.cameraPlane.x) + ',' + std::to_string(player.cameraPlane.y) + ']';
 
     QuickCG::printString(fps_str, 10, 10);
-    QuickCG::printString(ftm_str, 10, 20);
-    QuickCG::printString(dir_str, 10, 30);
-    QuickCG::printString(cam_str, 10, 40);
+    QuickCG::printString(avg_str, 10, 20);
+    QuickCG::printString(ftm_str, 10, 30);
+    QuickCG::printString(dir_str, 10, 40);
+    QuickCG::printString(cam_str, 10, 50);
 
 }
 
@@ -306,44 +289,32 @@ void display(uint32_t** buffer)
 }
 
 
-int main(int argc, char* argv[])
+int main()
 {
-    // load buffer
+    // create buffer
     uint32_t** buffer = createBuffer();
 
 
     // initialise player
-
     player.position = Vector2d(1.5, 1.5);
     player.direction = Vector2d(-1.0, 0.0);
 
-    // perpendicular to direction
-    player.cameraFix();
-
+    player.cameraFix(); // fix camera vector perpendicular to player direction
     player.rotate(180);
 
 
     // initialise map ini and map
-    mINI::INIFile file("maps/maps.ini");
-    mINI::INIStructure mapini;
+    map = loadMap("maps/map1.txt", mapWidth, mapHeight);
 
-    file.read(mapini);
-
-    std::string& currentMap = mapini["maps"][std::to_string(level)];
-
-    map = loadMap(currentMap, mapWidth, mapHeight);
 
     // initialise texture
+    texture.resize(config.TextureCount); // resize outer vector to fit textures
+    for (int i = 0; i < config.TextureCount; i++) { loadPNG(texture[i], texWidth, texHeight, config.TexturePaths[i]); }
 
-    texture.resize(config.TextureCount); // resize outer vector to fit images
-
-    for (int i = 0; i < (int) config.TextureCount; i++)
-    {
-        loadPNG(texture[i], texWidth, texHeight, config.TexturePaths[i]);
-    }
 
     // initialise window
     QuickCG::screen(config.ScreenWidth, config.ScreenHeight, 0, "raycaster");
+
 
     // start display loop
     display(buffer);

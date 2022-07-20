@@ -1,7 +1,8 @@
 CXX=clang++
 OPT=-O3
+STD=-std=c++20
 DEPFLAGS=-MMD -MP
-CXXFLAGS=-Wall -Wextra -Iinclude $(OPT)
+CXXFLAGS=$(STD) -Wall -Wextra -Iinclude $(OPT)
 
 
 CPPFILES=$(wildcard src/*.cpp)
@@ -23,7 +24,7 @@ obj/%.o:src/%.cpp
 	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 obj/loadpng.o:src/loadpng.cpp
-	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -Dcimg_use_png=1 -c -o obj/loadpng.o src/loadpng.cpp
+	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -Dcimg_use_png=1 -Dcimg_display=0 -c -o obj/loadpng.o src/loadpng.cpp
 
 # create dirs
 obj: FORCE

@@ -3,15 +3,14 @@
 #include <iostream>
 #include <fstream>
 
-int** loadMap(std::string path, unsigned int &mapWidth, unsigned int &mapHeight)
+int** loadMap(std::string path, int &mapWidth, int &mapHeight)
 {
     std::ifstream mapFile;
     mapFile.open(path);
 
     std::string line;
 
-    // determine dimesions
-
+    // determine dimensions by reading full file
     mapHeight = 0;
     if ( mapFile.is_open() )
     {
@@ -22,10 +21,9 @@ int** loadMap(std::string path, unsigned int &mapWidth, unsigned int &mapHeight)
             mapWidth = line.length();
         }
     }
-
     mapFile.close();
 
-    // create map array
+    // create new P2P map array
     int** map = new int*[mapHeight];
     for (int i = 0; i < mapHeight; i++)
     {
@@ -36,27 +34,30 @@ int** loadMap(std::string path, unsigned int &mapWidth, unsigned int &mapHeight)
 
     mapFile.open(path);
 
-
     int x,y;
     y = 0;
     if ( mapFile.is_open() )
     {
         while (std::getline(mapFile, line))
         {
-
             for (x = 0; x < mapWidth; x++)
             {
-                map[y][x] = (int) line[x] - 48;
+                int i;
+                int ascii = (int) line[x];
+
+                if (ascii == 32) { i = 0; } // space can also be zero for easier designing
+                else             { i = ascii - 48; } // 48 is first ascii digit
+
+                map[y][x] = i;
             }
             y++;
         }
-
     }
 
     return map;
 }
 
-void unloadMap(int** map, unsigned long mapWidth, unsigned long mapHeight)
+void unloadMap(int** map, int mapWidth, int mapHeight)
 {
     for (int i = 0; i < mapHeight; i++)
     {

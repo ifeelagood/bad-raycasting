@@ -14,13 +14,13 @@ public:
     Config(std::string filepath) : file(filepath) { init(); };
     void init();
 
-    unsigned int ScreenWidth, ScreenHeight;
+    int ScreenWidth, ScreenHeight;
 
     double MoveSpeed, RotationSpeed, SprintMult;
 
-    unsigned short ThreadNum;
+    int ThreadNum;
 
-    unsigned int TextureCount;
+    int TextureCount;
 
     std::vector<std::string> TexturePaths;
 };

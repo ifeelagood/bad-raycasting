@@ -1,7 +1,6 @@
 #include "timer.h"
 
-Timer::Timer() {};
-
+#include <numeric>
 
 void Timer::update(double ticks)
 {
@@ -9,4 +8,10 @@ void Timer::update(double ticks)
     current = ticks;
     frameTime = (current - old) / 1000.0f;
     fps = 1.0f / frameTime;
+    fpsBuffer.push_back(fps);
+}
+
+double Timer::getAverageFPS()
+{
+    return std::reduce(fpsBuffer.begin(), fpsBuffer.end()) / fpsBufferLength;
 }

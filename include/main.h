@@ -1,18 +1,23 @@
-#define RESOLUTION 4
+#pragma once
 
-#define ROTSPEED 120
-#define MOVESPEED 1.5
-
-#define MAX_FPS 240
-#define FRAME_DELAY 1000 / MAX_FPS
-
-
-#define screenWidth 1920
-#define screenHeight 1080
-
-
-// uncomment to use multiprocessing
-// #define USE_MULTICORE
-
+#include <vector>
+#include "config.h"
 
 typedef struct { bool w,a,s,d,m,up,down,left,right,tab,esc,lshift; } ButtonKeys;
+
+Config config("config.ini");
+
+int mapWidth, mapHeight;
+int texWidth, texHeight;
+
+bool done = false;
+
+std::vector<std::vector<uint32_t>> texture;
+
+Timer timer;
+ButtonKeys Keys;
+Player player;
+
+int level = 1;
+
+int** map;

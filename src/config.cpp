@@ -5,8 +5,8 @@ void Config::init()
     file.read(ini);
 
     //-----[display]-----
-    ScreenWidth = (unsigned int) std::stoi(ini["display"]["iWidth"]);
-    ScreenHeight = (unsigned int) std::stoi(ini["display"]["iHeight"]);
+    ScreenWidth = std::stoi(ini["display"]["iWidth"]);
+    ScreenHeight = std::stoi(ini["display"]["iHeight"]);
 
 
     //-----[gameplay]-----
@@ -15,10 +15,10 @@ void Config::init()
     SprintMult = std::stod(ini["gameplay"]["fSprintMult"]);
 
     //-----[engine]-----
-    ThreadNum = (unsigned short) std::stoi(ini["engine"]["iThreadNum"]);
+    ThreadNum = std::stoi(ini["engine"]["iThreadNum"]);
 
     //-----[textures]-----
-    TextureCount = (unsigned int) std::stoi(ini["textures"]["iTextureCount"]);
+    TextureCount = std::stoi(ini["textures"]["iTextureCount"]);
 
     auto const& textureCollection = ini["textures"];
 
