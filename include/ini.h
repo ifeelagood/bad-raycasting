@@ -784,6 +784,6 @@ namespace mINI
 			return writer << data;
 		}
 	};
-}
+};
 
 #endif // MINI_INI_H_

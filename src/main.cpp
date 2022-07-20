@@ -7,13 +7,30 @@
 
 #include "vector2d.h"
 #include "map.h"
-#include "player.h"
 #include "ini.h"
-#include "timer.h"
 #include "loadpng.h"
-
+#include "config.h"
+#include "timer.h"
+#include "player.h"
 
 #include "main.h"
+
+Config config("config.ini");
+
+int mapWidth, mapHeight;
+int texWidth, texHeight;
+
+bool done = false;
+
+std::vector<std::vector<uint32_t>> texture;
+
+fTimer timer;
+ButtonKeys Keys;
+Player player;
+
+int level = 1;
+
+int** map;
 
 
 uint32_t** createBuffer()
@@ -207,7 +224,7 @@ void drawRays3D(uint32_t** buffer)
 
 
         // ???????
-        int pitch = 100;
+        int pitch = 0;
 
         // determine y1 and y2 (top and bottom pixel)
         int y1 = -lineHeight / 2 + config.ScreenHeight / 2 + pitch;
@@ -255,16 +272,16 @@ void drawRays3D(uint32_t** buffer)
 void drawDebug()
 {
     std::string fps_str = "FPS: " + std::to_string(timer.fps);
-    std::string avg_str = "AVG FPS / 10s: " + std::to_string(timer.getAverageFPS());
+    // std::string avg_str = "AVG FPS / 10s: " + std::to_string(timer.getAverageFPS());
     std::string ftm_str = "Frametime: " + std::to_string(timer.frameTime);
     std::string dir_str = "Directon: [" + std::to_string(player.direction.x) + ',' + std::to_string(player.direction.y) + ']';
     std::string cam_str = "Camera: [" + std::to_string(player.cameraPlane.x) + ',' + std::to_string(player.cameraPlane.y) + ']';
 
     QuickCG::printString(fps_str, 10, 10);
-    QuickCG::printString(avg_str, 10, 20);
-    QuickCG::printString(ftm_str, 10, 30);
-    QuickCG::printString(dir_str, 10, 40);
-    QuickCG::printString(cam_str, 10, 50);
+    //QuickCG::printString(avg_str, 10, 20);
+    QuickCG::printString(ftm_str, 10, 20);
+    QuickCG::printString(dir_str, 10, 30);
+    QuickCG::printString(cam_str, 10, 40);
 
 }
 

@@ -1,15 +1,13 @@
-CXX=clang++
+CXX=g++
 OPT=-O3
-STD=-std=c++20
+STD=-std=c++14
 DEPFLAGS=-MMD -MP
-CXXFLAGS=$(STD) -Wall -Wextra -Iinclude $(OPT)
+CXXFLAGS=-Wall -Wextra -Iinclude $(OPT)
 
 
 CPPFILES=$(wildcard src/*.cpp)
 OBJECTS=$(patsubst src/%.cpp,obj/%.o,$(CPPFILES))
 DEPFILES=$(patsubst src/%.cpp,obj/%.d,$(CPPFILES))
-
-$(info $(DEPFILES))
 
 BINARY=bin/raycaster
 BINFLAGS=-lSDL2 -fopenmp -lpng -lz
@@ -25,6 +23,9 @@ obj/%.o:src/%.cpp
 
 obj/loadpng.o:src/loadpng.cpp
 	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -Dcimg_use_png=1 -Dcimg_display=0 -c -o obj/loadpng.o src/loadpng.cpp
+
+obj/main.o:src/main.cpp
+	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -c -o $@ $<
 
 # create dirs
 obj: FORCE
