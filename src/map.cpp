@@ -3,7 +3,7 @@
 #include <iostream>
 #include <fstream>
 
-int** loadMap(std::string path, unsigned long &mapWidth, unsigned long &mapHeight)
+int** loadMap(std::string path, unsigned int &mapWidth, unsigned int &mapHeight)
 {
     std::ifstream mapFile;
     mapFile.open(path);

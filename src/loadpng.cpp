@@ -5,17 +5,18 @@
 using namespace cimg_library;
 
 
-void loadPNG(std::vector<uint32_t>& out, int& w, int& h, const std::string filename)
+void loadPNG(std::vector<uint32_t>& out, unsigned int& w, unsigned int& h, const std::string filename)
 {
     CImg<uint8_t> img(filename.c_str());
 
     w = img.width();
     h = img.height();
 
+    out.resize(w*h);
 
-    for (int y = 0; y < h; y++)
+    for (int y = 0; y < (int) h; y++)
     {
-        for (int x = 0; x < w; x++)
+        for (int x = 0; x < (int) w; x++)
         {
             uint8_t r = img.atXY(x, y, 0);
             uint8_t g = img.atXY(x, y, 1);

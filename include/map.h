@@ -1,5 +1,7 @@
+#pragma once
+
 #include <string>
 
-int** loadMap(std::string path, unsigned long &mapWidth, unsigned long &mapHeight);
+int** loadMap(std::string path, unsigned int &mapWidth, unsigned int &mapHeight);
 
-void unloadMap(int** map, unsigned long &mapWidth, unsigned long &mapHeight);
+void unloadMap(int** map, unsigned int &mapWidth, unsigned int &mapHeight);

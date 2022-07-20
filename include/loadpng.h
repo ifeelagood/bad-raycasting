@@ -9,4 +9,4 @@
 #include <png.h>
 
 
-void loadPNG(std::vector<uint32_t>& out, int& w, int& h, const std::string filename);
+void loadPNG(std::vector<uint32_t>& out, unsigned int& w, unsigned int& h, const std::string filename);

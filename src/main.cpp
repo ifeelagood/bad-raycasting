@@ -18,21 +18,15 @@
 
 Config config("config.ini");
 
-unsigned long mapWidth, mapHeight;
-unsigned long texWidth, texHeight;
-
-
+unsigned int mapWidth, mapHeight;
+unsigned int texWidth, texHeight;
 
 bool done = false;
 
-
-
-std::vector<uint32_t> texture;
+std::vector<std::vector<uint32_t>> texture;
 
 Timer timer;
-
 ButtonKeys Keys;
-
 Player player;
 
 int level = 1;
@@ -211,7 +205,8 @@ double DDA(Vector2d &rayPosition, Vector2d &rayDirection, int &side, int &tile)
 
     return perpendicularWallDistance;
 }
-void drawRays3D(unsigned long mapWidth, unsigned long mapHeight)
+
+void drawRays3D(uint32_t** buffer)
 {
     for (int x = 0; x < screenWidth; x++)
     {
@@ -276,8 +271,6 @@ void drawRays3D(unsigned long mapWidth, unsigned long mapHeight)
     }
 }
 
-
-
 void drawDebug()
 {
     std::string fps_str = "FPS: " + std::to_string(timer.fps);
@@ -292,25 +285,18 @@ void drawDebug()
 
 }
 
-void leaveMyCPUALONE()
-{
-    SDL_Delay(5);
-}
-
-
-void display()
+void display(uint32_t** buffer)
 {
     while (!done)
     {
-        leaveMyCPUALONE();
         // user input
         QuickCG::readKeys();
         getKeys();
         handleInput(player);
         // rendering
-        drawRays3D(mapWidth, mapHeight);
+        drawRays3D(buffer);
         QuickCG::drawBufferP2P(buffer);
-        clearBuffer();
+        clearBuffer(buffer);
 
         timer.update(QuickCG::getTicks());
         if (Keys.tab == 1) { drawDebug(); }
@@ -345,27 +331,21 @@ int main(int argc, char* argv[])
 
     std::string& currentMap = mapini["maps"][std::to_string(level)];
 
-    unsigned long mapWidth, mapHeight;
-
     map = loadMap(currentMap, mapWidth, mapHeight);
 
-    // initialise textures
+    // initialise texture
 
-    int texCount = 3;
+    texture.resize(config.TextureCount); // resize outer vector to fit images
 
-    for (int i = 0; i < texCount; i++) { texture[i].resize(texWidth * texHeight); }
-
-    int tw, th;
-
-    loadPNG(texture[0], tw, th, "wolftex/greystone.png");
-    loadPNG(texture[1], tw, th, "wolftex/mossy.png");
-    loadPNG(texture[2], tw, th, "wolftex/bluestone.png");
-
+    for (int i = 0; i < (int) config.TextureCount; i++)
+    {
+        loadPNG(texture[i], texWidth, texHeight, config.TexturePaths[i]);
+    }
 
     // initialise window
-    QuickCG::screen(screenWidth, screenHeight, 0, "raycaster");
+    QuickCG::screen(config.ScreenWidth, config.ScreenHeight, 0, "raycaster");
 
     // start display loop
-    display(mapWidth, mapHeight);
+    display(buffer);
 
 }
