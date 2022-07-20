@@ -11,27 +11,23 @@
 #include "ini.h"
 #include "timer.h"
 #include "loadpng.h"
+#include "config.h"
 
 
 #include "main.h"
 
+Config config("config.ini");
+
+unsigned long mapWidth, mapHeight;
+unsigned long texWidth, texHeight;
+
+
+
 bool done = false;
 
-Uint32 buffer[screenHeight][screenWidth];
-
-void clearBuffer()
-{
-    for (int y = 0; y < screenHeight; y++)
-    {
-        for (int x = 0; x < screenWidth; x++)
-        {
-            buffer[y][x] = 0;
-        }
-    }
-}
 
 
-std::vector<Uint32> texture[3];
+std::vector<uint32_t> texture;
 
 Timer timer;
 
@@ -42,6 +38,45 @@ Player player;
 int level = 1;
 
 int** map;
+
+uint32_t** createBuffer()
+{
+    int h = (int) config.ScreenHeight;
+    int w = (int) config.ScreenWidth;
+
+    uint32_t** buffer = new uint32_t*[h];
+
+    for (int i = 0; i < h; i++)
+    {
+        buffer[i] = new uint32_t[w];
+    }
+
+    return buffer;
+}
+
+void deleteBuffer(uint32_t** buffer)
+{
+    int h = (int) config.ScreenHeight;
+    int w = (int) config.ScreenWidth;
+
+    for (int i = 0; i < h; i++)
+    {
+            delete[] buffer[i];
+    }
+
+    delete[] buffer;
+}
+
+void clearBuffer(uint32_t** buffer)
+{
+    for (int y = 0; y < (int) screenHeight; y++)
+    {
+        for (int x = 0; x < (int) screenWidth; x++)
+        {
+            buffer[y][x] = 0;
+        }
+    }
+}
 
 int getMapTile(int x, int y) { return map[y][x]; }
 
@@ -84,7 +119,6 @@ void movePlayer(double moveSpeed)
     }
 }
 
-
 void handleInput(Player &player)
 {
 
@@ -106,7 +140,7 @@ void handleInput(Player &player)
     if (Keys.esc == 1) { done = true; }
 }
 
-double DDA(int x, Vector2d &rayPosition, Vector2d &rayDirection, int &side, int &tile)
+double DDA(Vector2d &rayPosition, Vector2d &rayDirection, int &side, int &tile)
 {
     Vector2i mapPosition(int(rayPosition.x), int(rayPosition.y));
 
@@ -179,9 +213,6 @@ double DDA(int x, Vector2d &rayPosition, Vector2d &rayDirection, int &side, int 
 }
 void drawRays3D(unsigned long mapWidth, unsigned long mapHeight)
 {
-    #ifdef USE_MULTICORE
-    #pragma omp parallel for
-    #endif
     for (int x = 0; x < screenWidth; x++)
     {
         // determine vector for ray
@@ -193,7 +224,7 @@ void drawRays3D(unsigned long mapWidth, unsigned long mapHeight)
         int side,tile;
         // calculate DDA step
 
-        double perpendicularWallDistance = DDA(x, rayPosition, rayDirection, side, tile);
+        double perpendicularWallDistance = DDA(rayPosition, rayDirection, side, tile);
 
         // calculate wall height
         int lineHeight = (int)(screenHeight / perpendicularWallDistance);
@@ -236,7 +267,7 @@ void drawRays3D(unsigned long mapWidth, unsigned long mapHeight)
             int texY =  (int)texOffset & (texHeight - 1);
             texOffset += texStep;
 
-            Uint32 color = texture[texID][texHeight * texY + texX];
+            uint32_t color = texture[texID][texHeight * texY + texX];
 
             // if(side == 1) { color = (color >> 1) & 8355711; }
 
@@ -254,8 +285,6 @@ void drawDebug()
     std::string dir_str = "Directon: [" + std::to_string(player.direction.x) + ',' + std::to_string(player.direction.y) + ']';
     std::string cam_str = "Camera: [" + std::to_string(player.cameraPlane.x) + ',' + std::to_string(player.cameraPlane.y) + ']';
 
-
-
     QuickCG::printString(fps_str, 10, 10);
     QuickCG::printString(ftm_str, 10, 20);
     QuickCG::printString(dir_str, 10, 30);
@@ -269,7 +298,7 @@ void leaveMyCPUALONE()
 }
 
 
-void display(unsigned long mapWidth, unsigned long mapHeight)
+void display()
 {
     while (!done)
     {
@@ -280,7 +309,7 @@ void display(unsigned long mapWidth, unsigned long mapHeight)
         handleInput(player);
         // rendering
         drawRays3D(mapWidth, mapHeight);
-        QuickCG::drawBuffer(buffer[0]);
+        QuickCG::drawBufferP2P(buffer);
         clearBuffer();
 
         timer.update(QuickCG::getTicks());
@@ -293,6 +322,8 @@ void display(unsigned long mapWidth, unsigned long mapHeight)
 
 int main(int argc, char* argv[])
 {
+    // load buffer
+    uint32_t** buffer = createBuffer();
 
 
     // initialise player

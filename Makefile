@@ -1,14 +1,40 @@
-CC = g++
-CCFLAGS = -O3 -lSDL2 -fopenmp -lpng -lz
+CXX=clang++
+OPT=-O3
+DEPFLAGS=-MMD -MP
+CXXFLAGS=-Wall -Wextra -Iinclude $(OPT)
 
-SRC_PATH = src
-BIN_PATH = bin
-INC_PATH = include
 
-TARGET_NAME = raycaster
-TARGET = $(BIN_PATH)/$(TARGET_NAME)
+CPPFILES=$(wildcard src/*.cpp)
+OBJECTS=$(patsubst src/%.cpp,obj/%.o,$(CPPFILES))
+DEPFILES=$(patsubst src/%.cpp,obj/%.d,$(CPPFILES))
 
-SRC = $(foreach x, $(SRC_PATH), $(wildcard $(addprefix $(x)/*,.cpp)))
+$(info $(DEPFILES))
 
-$(TARGET): $(SRC)
-	$(CC) -o $(TARGET) $(SRC) -I$(INC_PATH) $(CCFLAGS)
+BINARY=bin/raycaster
+BINFLAGS=-lSDL2 -fopenmp -lpng -lz
+
+
+all: $(BINARY)
+
+$(BINARY): $(OBJECTS)
+	$(CXX) $(CXXFLAGS) $(BINFLAGS) -o $(BINARY) $(OBJECTS)
+
+obj/%.o:src/%.cpp
+	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -c -o $@ $<
+
+obj/loadpng.o:src/loadpng.cpp
+	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -Dcimg_use_png=1 -c -o obj/loadpng.o src/loadpng.cpp
+
+# create dirs
+obj: FORCE
+	mkdir -p obj
+
+bin: FORCE
+	mkdir -p bin
+
+FORCE:
+
+clean:
+	rm -rf $(BINARY) $(OBJECTS)
+
+-include $(DEPFILES)

@@ -248,6 +248,31 @@ namespace QuickCG
 		}
 	}
 
+	// draws pointer to pointer array
+	void drawBufferP2P(Uint32** buffer)
+	{
+		Uint32*  ptr_x;
+		Uint32** ptr_y;
+
+		Uint32* bufp;
+		bufp = (Uint32*)srf->pixels;
+
+		ptr_y = buffer;
+		for (int y = 0; y < h; y++)
+		{
+			ptr_x = *ptr_y;
+			for (int x = 0; x < w; x++)
+			{
+				*bufp = *ptr_x;
+				ptr_x++;
+				bufp++;
+			}
+			ptr_y++;
+			bufp += srf->pitch / 4;
+			bufp -= w;
+		}
+	}
+
 	void getScreenBuffer(std::vector<Uint32>& buffer)
 	{
 		Uint32* bufp;

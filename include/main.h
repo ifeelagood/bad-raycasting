@@ -10,8 +10,6 @@
 #define screenWidth 1920
 #define screenHeight 1080
 
-#define texWidth 64
-#define texHeight 64
 
 // uncomment to use multiprocessing
 // #define USE_MULTICORE
