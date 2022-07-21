@@ -46,3 +46,15 @@ template <typename T> void clearBuffer2D(T** buffer, int w, int h)
 {
     std::fill(&buffer[0][0], &buffer[h-1][w-1], 0u);
 }
+
+template <typename T> void putBuffer1D(T* buffer, T value, int x, int y, int h)
+{
+    int i = x + y * h;
+
+    buffer[i] = value;
+}
+
+template <typename T> void putBuffer2D(T** buffer, T value, int x, int y)
+{
+    buffer[y][x] = value;
+}
