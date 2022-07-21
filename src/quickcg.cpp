@@ -47,6 +47,7 @@ QuickCG can handle some things that standard C++ doesn't but that are commonly u
 #include <vector>
 #include <map>
 #include <iostream>
+#include <cstring>
 #include <fstream>
 
 namespace QuickCG
@@ -248,6 +249,15 @@ namespace QuickCG
 		}
 	}
 
+	void drawBuffer1D(Uint32* buffer)
+	{
+		Uint32* buffer_ptr = buffer;
+		Uint32* pixel_ptr = (Uint32*) srf->pixels;
+
+		std::memcpy(pixel_ptr, buffer_ptr, sizeof(buffer));
+	}
+
+
 	// draws pointer to pointer array
 	void drawBufferP2P(Uint32** buffer)
 	{
@@ -272,6 +282,7 @@ namespace QuickCG
 			bufp -= w;
 		}
 	}
+
 
 	void getScreenBuffer(std::vector<Uint32>& buffer)
 	{

@@ -206,6 +206,7 @@ void pset(int x, int y, const ColorRGBA& color);
 ColorRGBA pget(int x, int y);
 void drawBuffer(Uint32* buffer);
 void drawBufferP2P(Uint32** buffer);
+void drawBuffer1D(Uint32* buffer);
 bool onScreen(int x, int y);
 
 ////////////////////////////////////////////////////////////////////////////////
