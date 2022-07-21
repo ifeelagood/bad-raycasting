@@ -12,6 +12,7 @@
 #include "config.h"
 #include "timer.h"
 #include "player.h"
+#include "buffer.h"
 
 #include "main.h"
 
@@ -31,49 +32,6 @@ Player player;
 int level = 1;
 
 int** map;
-
-
-uint32_t** createBuffer()
-{
-    int& h = config.ScreenHeight;
-    int& w = config.ScreenWidth;
-
-    uint32_t** buffer = new uint32_t*[h];
-
-    for (int i = 0; i < h; i++)
-    {
-        buffer[i] = new uint32_t[w];
-    }
-
-    return buffer;
-}
-
-void deleteBuffer(uint32_t** buffer)
-{
-    int& h = config.ScreenHeight;
-    // int& w = config.ScreenWidth;
-
-    for (int i = 0; i < h; i++)
-    {
-            delete[] buffer[i];
-    }
-
-    delete[] buffer;
-}
-
-void clearBuffer(uint32_t** buffer)
-{
-    int& h = config.ScreenHeight;
-    int& w = config.ScreenWidth;
-
-    for (int y = 0; y < h; y++)
-    {
-        for (int x = 0; x < w; x++)
-        {
-            buffer[y][x] = 0;
-        }
-    }
-}
 
 int getMapTile(int x, int y) { return map[y][x]; }
 
@@ -204,7 +162,30 @@ double DDA(Vector2d &rayPosition, Vector2d &rayDirection, int &side, int &tile)
     return perpendicularWallDistance;
 }
 
-void drawRays3D(uint32_t** buffer)
+std::vector<std::vector<int>> bresenham(int x1, int y1, int x2, int y2)
+{
+    // shape(-1, 2), 2 for x and y.
+    std::vector<std::vector<int>> intersecting;
+
+    int m_new = 2 * (y2 - y1);
+    int slope_error_new = m_new - (x2 - x1);
+    for (int x = x1, y = y1; x <= x2; x++)
+    {
+        std::vector<int> cv = {x, y};
+        intersecting.push_back(cv);
+
+        slope_error_new += m_new;
+        if (slope_error_new >= 0)
+        {
+            y++;
+            slope_error_new  -= 2 * (x2 - x1);
+        }
+    }
+
+    return intersecting;
+}
+
+void drawRays3D(uint32_t* buffer)
 {
     for (int x = 0; x < config.ScreenWidth; x++)
     {
@@ -264,7 +245,7 @@ void drawRays3D(uint32_t** buffer)
 
             // if(side == 1) { color = (color >> 1) & 8355711; }
 
-            buffer[y][x] = color;
+            putBuffer1D<uint32_t>(buffer, color, x, y, config.ScreenHeight);
         }
     }
 }
@@ -285,7 +266,7 @@ void drawDebug()
 
 }
 
-void display(uint32_t** buffer)
+void display(uint32_t* buffer)
 {
     while (!done)
     {
@@ -295,8 +276,8 @@ void display(uint32_t** buffer)
         handleInput(player);
         // rendering
         drawRays3D(buffer);
-        QuickCG::drawBufferP2P(buffer);
-        clearBuffer(buffer);
+        QuickCG::drawBuffer1D(buffer);
+        clearBuffer1D<uint32_t>(buffer, config.ScreenWidth, config.ScreenHeight);
 
         timer.update(QuickCG::getTicks());
         if (Keys.tab == 1) { drawDebug(); }
@@ -309,7 +290,7 @@ void display(uint32_t** buffer)
 int main()
 {
     // create buffer
-    uint32_t** buffer = createBuffer();
+    uint32_t* buffer = createBuffer1D<uint32_t>(config.ScreenWidth, config.ScreenHeight);
 
 
     // initialise player

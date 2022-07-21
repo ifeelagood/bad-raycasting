@@ -1,17 +1,17 @@
-CXX=g++
+CXX=clang++
 OPT=-O3
 STD=-std=c++14
 DEPFLAGS=-MMD -MP
 CXXFLAGS=-Wall -Wextra -Iinclude $(OPT)
 
 
+CFILES = $(wildcard src/*.c)
 CPPFILES=$(wildcard src/*.cpp)
 OBJECTS=$(patsubst src/%.cpp,obj/%.o,$(CPPFILES))
 DEPFILES=$(patsubst src/%.cpp,obj/%.d,$(CPPFILES))
 
 BINARY=bin/raycaster
 BINFLAGS=-lSDL2 -fopenmp -lpng -lz
-
 
 all: $(BINARY)
 

@@ -11,11 +11,11 @@ template <typename T> T* createBuffer1D(int w, int h)
 
 template <typename T> T** createBuffer2D(int w, int h)
 {
-    uint32_t** buffer = new uint32_t*[h];
+    T** buffer = new T*[h];
 
     for (int i = 0; i < h; i++)
     {
-        buffer[i] = new uint32_t[w];
+        buffer[i] = new T[w];
     }
 
     return buffer;
