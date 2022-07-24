@@ -2,7 +2,7 @@ CXX=g++
 OPT=-O3
 STD=-std=c++14
 DEPFLAGS=-MMD -MP
-CXXFLAGS=-Wall -Wextra -Iinclude $(OPT)
+CXXFLAGS=-Wall -Wextra -Iinclude $(OPT) -fopenmp
 
 
 CPPFILES=$(wildcard src/*.cpp)
@@ -14,6 +14,8 @@ BINFLAGS=-lSDL2 -fopenmp -lpng -lz
 
 
 all: $(BINARY)
+debug: CXXFLAGS+= -pg -ltcmalloc
+debug: $(BINARY)
 
 $(BINARY): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $(BINFLAGS) -o $(BINARY) $(OBJECTS)
@@ -26,6 +28,8 @@ obj/loadpng.o:src/loadpng.cpp
 
 obj/main.o:src/main.cpp
 	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -c -o $@ $<
+
+
 
 # create dirs
 obj: FORCE

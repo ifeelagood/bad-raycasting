@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <cmath>
+#include <omp.h>
 #include <CImg.h>
 
 #include "quickcg.h"
@@ -161,7 +162,6 @@ double DDA(Vector2d &rayPosition, Vector2d &rayDirection, int &side, int &tile)
         mapStep.x = 1;
         nextSideDistance.x = (mapPosition.x - player.position.x + 1.0f) * rayStep.x;
     }
-
     if (rayDirection.y < 0)
     {
         mapStep.y = -1;
@@ -206,6 +206,7 @@ double DDA(Vector2d &rayPosition, Vector2d &rayDirection, int &side, int &tile)
 
 void drawRays3D(uint32_t** buffer)
 {
+    #pragma omp parallel for
     for (int x = 0; x < config.ScreenWidth; x++)
     {
         // determine vector for ray
@@ -222,15 +223,17 @@ void drawRays3D(uint32_t** buffer)
         // calculate wall height
         int lineHeight = (int)(config.ScreenHeight / perpendicularWallDistance);
 
+        int L2 = lineHeight / 2;
+        int H2 = config.ScreenHeight / 2;
 
         // ???????
-        int pitch = 0;
+        int pitch = 50;
 
         // determine y1 and y2 (top and bottom pixel)
-        int y1 = -lineHeight / 2 + config.ScreenHeight / 2 + pitch;
-        int y2 =  lineHeight / 2 + config.ScreenHeight / 2 + pitch;
+        int y1 = -L2 + H2 + pitch;
+        int y2 =  L2 + H2 + pitch;
 
-        if (y1 < 0)             { y1 = 0;                }
+        if (y1 < 0) { y1 = 0; }
         if (y2 >= config.ScreenHeight) { y2 = config.ScreenHeight - 1; }
 
         // texture calculations
@@ -249,7 +252,7 @@ void drawRays3D(uint32_t** buffer)
 
         // more texture calculations
         double texStep = 1.0 * texHeight / lineHeight;
-        double texOffset = (y1 - pitch - (config.ScreenHeight / 2) + (lineHeight / 2)) * texStep;
+        double texOffset = (y1 - pitch - H2 + L2) * texStep;
 
         int texID = tile - 1; // so we can use 0th texture
 
@@ -261,8 +264,6 @@ void drawRays3D(uint32_t** buffer)
             texOffset += texStep;
 
             uint32_t color = texture[texID][texHeight * texY + texX];
-
-            // if(side == 1) { color = (color >> 1) & 8355711; }
 
             buffer[y][x] = color;
         }
@@ -295,13 +296,12 @@ void display(uint32_t** buffer)
         handleInput(player);
         // rendering
         drawRays3D(buffer);
-        QuickCG::drawBufferP2P(buffer);
+        QuickCG::drawBuffer(buffer);
         clearBuffer(buffer);
 
         timer.update(QuickCG::getTicks());
         if (Keys.tab == 1) { drawDebug(); }
         QuickCG::redraw();
-
     }
 }
 
