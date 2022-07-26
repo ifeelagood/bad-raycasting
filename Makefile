@@ -2,7 +2,7 @@ CXX=g++
 OPT=-O3
 STD=-std=c++14
 DEPFLAGS=-MMD -MP
-CXXFLAGS=-Wall -Wextra -Iinclude $(OPT) -fopenmp
+CXXFLAGS=-Wall -Wextra -Iinclude $(OPT) -fopenmp -mavx
 
 
 CPPFILES=$(wildcard src/*.cpp)

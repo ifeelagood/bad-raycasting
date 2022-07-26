@@ -145,7 +145,7 @@ namespace QuickCG
 			std::exit(1);
 		}
 
-		srf = SDL_CreateRGBSurface(0, w, h, 32,
+		srf = SDL_CreateRGBSurface(0, h, w, 32,
 			0xFF000000,
 			0x00FF0000,
 			0x0000FF00,
@@ -157,7 +157,7 @@ namespace QuickCG
 			std::exit(1);
 		}
 
-		tex = SDL_CreateTexture(render, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, w, h);
+		tex = SDL_CreateTexture(render, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, w, h);
 		if (tex == NULL)
 		{
 			printf("Unable to set texture: %s\n", SDL_GetError());
@@ -192,11 +192,12 @@ namespace QuickCG
 
 	//Updates the screen.  Has to be called to view new pixels, but use only after
 	//drawing the whole screen because it's slow.
-	void redraw()
+	void redraw(Uint32* buffer)
 	{
-		SDL_UpdateTexture(tex, NULL, srf->pixels, srf->pitch);
+		SDL_UpdateTexture(tex, NULL, buffer, w*sizeof(uint32_t));
 		SDL_RenderClear(render);
-		SDL_RenderCopy(render, tex, NULL, NULL);
+		// SDL_RenderCopy(render, tex, NULL, NULL);
+		SDL_RenderCopyEx(render, tex, NULL, NULL, -90.0, NULL, SDL_RendererFlip::SDL_FLIP_NONE);
 		SDL_RenderPresent(render);
 	}
 
@@ -230,47 +231,18 @@ namespace QuickCG
 		return ColorRGBA(colorRGBA);
 	}
 
-	//Draws a buffer of pixels to the screen
-	void drawBuffer(Uint32** buffer)
-	{
-		Uint32* bufp;
-		bufp = (Uint32*)srf->pixels;
-
-		for (int y = 0; y < h; y++)
-		{
-			for (int x = 0; x < w; x++)
-			{
-				*bufp = buffer[y][x];
-				bufp++;
-			}
-			bufp += srf->pitch / 4;
-			bufp -= w;
-		}
-	}
-
-	// // draws pointer to pointer array
-	// void drawBufferP2P(Uint32** buffer)
+	// void drawBuffer(Uint32* buffer)
 	// {
-	// 	Uint32*  ptr_x;
-	// 	Uint32** ptr_y;
-
 	// 	Uint32* bufp;
 	// 	bufp = (Uint32*)srf->pixels;
+	// }
 
-	// 	ptr_y = buffer;
-	// 	for (int y = 0; y < h; y++)
-	// 	{
-	// 		ptr_x = *ptr_y;
-	// 		for (int x = 0; x < w; x++)
-	// 		{
-	// 			*bufp = *ptr_x;
-	// 			ptr_x++;
-	// 			bufp++;
-	// 		}
-	// 		ptr_y++;
-	// 		bufp += srf->pitch / 4;
-	// 		bufp -= w;
-	// 	}
+	// void drawBufferAVX(Uint32* buffer)
+	// {
+	// 	Uint32* bufp;
+	// 	bufp = (Uint32*)srf->pixels;
+	// 	size_t len = w*h/16; // round to nearest 32
+	// 	avx::copy_256_ui32(bufp, buffer, len);
 	// }
 
 	void getScreenBuffer(std::vector<Uint32>& buffer)
@@ -1097,26 +1069,29 @@ namespace QuickCG
 	//Draws character n at position x,y with color RGB and, if enabled, background color
 	//This function is used by the text printing functions below, and uses the font data
 	//defined below to draw the letter pixel by pixel
-	void drawLetter(unsigned char n, int x, int y, const ColorRGBA& color, bool bg, const ColorRGBA& color2)
+	void drawLetter(uint32_t* buffer, unsigned char n, int x, int y, const ColorRGBA& color, bool bg, const ColorRGBA& color2)
 	{
 		int u, v;
 
 		for (v = 0; v < 8; v++)
 			for (u = 0; u < 8; u++)
 			{
-				if (font[n][u][v]) pset(x + u, y + v, color);
-				else if (bg) pset(x + u, y + v, color2);
+				int dx = x + u;
+				int dy = h - (y + v);
+
+				if (font[n][u][v]) buffer[dx*h+dy] = RGBtoINT(color);
+				else if (bg) buffer[dx*h+dy] = RGBtoINT(color2);
 			}
 	}
 
 	//Draws a string of text
-	int printString(const std::string& text, int x, int y, const ColorRGBA& color, bool bg, const ColorRGBA& color2, int forceLength)
+	int printString(uint32_t* buffer, const std::string& text, int x, int y, const ColorRGBA& color, bool bg, const ColorRGBA& color2, int forceLength)
 	{
 		int amount = 0;
 		for (size_t i = 0; i < text.size(); i++)
 		{
 			amount++;
-			drawLetter(text[i], x, y, color, bg, color2);
+			drawLetter(buffer, text[i], x, y, color, bg, color2);
 			x += 8;
 			if (x > w - 8) { x %= 8; y += 8; }
 			if (y > h - 8) { y %= 8; }
@@ -1124,7 +1099,7 @@ namespace QuickCG
 		while (amount < forceLength)
 		{
 			amount++;
-			drawLetter(' ', x, y, color, bg, color2);
+			drawLetter(buffer, ' ', x, y, color, bg, color2);
 			x += 8;
 			if (x > w - 8) { x %= 8; y += 8; }
 			if (y > h - 8) { y %= 8; }
@@ -1161,44 +1136,44 @@ namespace QuickCG
 		return ascii;
 	}
 	//returns a string, length is the maximum length of the given string array
-	void getInputString(std::string& text, const std::string& message, bool clear, int x, int y, const ColorRGBA& color, bool bg, const ColorRGBA& color2)
-	{
-		std::vector<Uint32> screenBuffer;
-		getScreenBuffer(screenBuffer);
+	// void getInputString(std::string& text, const std::string& message, bool clear, int x, int y, const ColorRGBA& color, bool bg, const ColorRGBA& color2)
+	// {
+	// 	std::vector<Uint32> screenBuffer;
+	// 	getScreenBuffer(screenBuffer);
 
-		bool enter = 0;
-		bool change = 1;
-		text.clear();
+	// 	bool enter = 0;
+	// 	bool change = 1;
+	// 	text.clear();
 
-		while (enter == 0)
-		{
-			if (done()) end();
-			Uint8 temp = getInputCharacter();
-			if (temp >= ASCII_SPACE)
-			{
-				text.push_back(temp);
-				change = 1;
-			}
-			if (temp == ASCII_BACKSPACE && text.size() > 0) { text.resize(text.size() - 1); change = 1; }
+	// 	while (enter == 0)
+	// 	{
+	// 		if (done()) end();
+	// 		Uint8 temp = getInputCharacter();
+	// 		if (temp >= ASCII_SPACE)
+	// 		{
+	// 			text.push_back(temp);
+	// 			change = 1;
+	// 		}
+	// 		if (temp == ASCII_BACKSPACE && text.size() > 0) { text.resize(text.size() - 1); change = 1; }
 
-			if (change)
-			{
-				// drawBuffer(&screenBuffer[0]);
-				int pos = print(message, x, y, color, bg, color2);
-				int x2 = pos / h, y2 = pos % h;
-				print(text, x2, y2, color, bg, color2);
-				redraw();
-			}
-			if (temp == ASCII_ENTER) { enter = 1; }
-		}
+	// 		if (change)
+	// 		{
+	// 			// drawBuffer(&screenBuffer[0]);
+	// 			int pos = print(message, x, y, color, bg, color2);
+	// 			int x2 = pos / h, y2 = pos % h;
+	// 			print(text, x2, y2, color, bg, color2);
+	// 			redraw();
+	// 		}
+	// 		if (temp == ASCII_ENTER) { enter = 1; }
+	// 	}
 
-		//remove the input stuff from the screen again so there is room for possible next input
-		if (clear)
-		{
-			// drawBuffer(&screenBuffer[0]);
-			redraw();
-		}
-	}
+	// 	//remove the input stuff from the screen again so there is room for possible next input
+	// 	if (clear)
+	// 	{
+	// 		// drawBuffer(&screenBuffer[0]);
+	// 		redraw();
+	// 	}
+	// }
 
 	void encodeBase64(const std::vector<unsigned char>& in, std::string& out)
 	{
@@ -1515,7 +1490,7 @@ namespace QuickCG
 				readPngHeader(&in[0], size); if (error) return;
 				size_t pos = 33; //first byte of the first chunk after the header
 				std::vector<unsigned char> idat; //the data from idat chunks
-				bool IEND = false, known_type = true;
+				bool IEND = false;
 				info.key_defined = false;
 				while (!IEND) //loop through the chunks, ignoring unknown chunks and stopping at IEND chunk. IDAT data is put at the start of the in buffer
 				{
@@ -1566,7 +1541,6 @@ namespace QuickCG
 					{
 						if (!(in[pos + 0] & 32)) { error = 69; return; } //error: unknown critical chunk (5th bit of first byte of chunk type is 0)
 						pos += (chunkLength + 4); //skip 4 letters and uninterpreted data of unimplemented chunk
-						known_type = false;
 					}
 					pos += 4; //step over CRC (which is ignored)
 				}
@@ -1929,11 +1903,11 @@ namespace QuickCG
 		if (dataLengthLeft <= 0) return;
 
 		int nsamples = len / 2; //always 16-bit, so always 2 bytes per sample, hence the amount of samples being len / 2
-		size_t fill_len = (nsamples < dataLengthLeft ? nsamples : dataLengthLeft);
+		size_t fill_len = (nsamples < (int) dataLengthLeft ? nsamples : dataLengthLeft);
 
 		for (int i = 0; i < nsamples; i++)
 		{
-			if (i < fill_len)
+			if (i < (int) fill_len)
 			{
 				int s = int(audio_data[i] * 32768);
 				if (s < -32768) s = -32768;

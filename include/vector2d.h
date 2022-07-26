@@ -25,11 +25,33 @@ public:
     // translate points by vector
     void translate(Vector2d &coord);
 
+    // get absolute value of vector
+    double abs();
 
+    // direct assignment vector
     Vector2d operator+(Vector2d const &a);
 	Vector2d operator-(Vector2d const &a);
 	Vector2d operator*(Vector2d const &a);
-	Vector2d operator*(const double &a);
+    Vector2d operator/(Vector2d const &a);
+
+    // direct assignment double
+    void operator+=(Vector2d const &a);
+    void operator-=(Vector2d const &a);
+	void operator*=(Vector2d const &a);
+	void operator/=(Vector2d const &a);
+
+    // operator assignment vector
+    Vector2d operator+(const double &a);
+    Vector2d operator-(const double &a);
+    Vector2d operator*(const double &a);
+    Vector2d operator/(const double &a);
+
+    // operator assignment double
+    void operator+=(const double &a);
+    void operator-=(const double &a);
+	void operator*=(const double &a);
+	void operator/=(const double &a);
+
 
 };
 

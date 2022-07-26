@@ -16,11 +16,16 @@ public:
 
     int ScreenWidth, ScreenHeight;
 
-    double MoveSpeed, RotationSpeed, SprintMult;
+    int VerticalResolution;
+
+    double MoveSpeed, RotationSpeed, SprintMultSpeed, SprintMultRotation;
 
     int ThreadNum;
 
     int TextureCount;
+
+    uint32_t FloorColor, RoofColor, CrosshairColor;
+
 
     std::vector<std::string> TexturePaths;
 };

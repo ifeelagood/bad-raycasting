@@ -67,6 +67,27 @@ void Vector2d::rotateByDeg(double deg)
 }
 
 
+double Vector2d::abs()
+{
+    return sqrt(x*x+y*y);
+}
+
+Vector2d translate(Vector2d position, Vector2d direction, double distance)
+{
+    Vector2d v;
+
+    v.x = position.x + (direction.x * distance);
+    v.y = position.y + (direction.y * distance);
+
+    return v;
+}
+
+
+// #############################
+// #########OPERATORS###########
+// #############################
+
+// direct assignment vector
 Vector2d Vector2d::operator+(Vector2d const &a) {
 	return Vector2d { x + a.x, y + a.y };
 }
@@ -79,16 +100,59 @@ Vector2d Vector2d::operator*(Vector2d const &a) {
 	return Vector2d { x * a.x, y * a.y };
 }
 
+Vector2d Vector2d::operator/(Vector2d const &a) {
+	return Vector2d { x / a.x, y / a.y };
+}
+
+// direct assignment double
+Vector2d Vector2d::operator+(const double &a) {
+	return Vector2d { x + a, y + a };
+}
+
+Vector2d Vector2d::operator-(const double &a) {
+	return Vector2d { x - a, y - a };
+}
+
 Vector2d Vector2d::operator*(const double &a) {
 	return Vector2d { x * a, y * a };
 }
 
-Vector2d translate(Vector2d position, Vector2d direction, double distance)
-{
-    Vector2d v;
+Vector2d Vector2d::operator/(const double &a) {
+	return Vector2d { x / a, y / a };
+}
 
-    v.x = position.x + (direction.x * distance);
-    v.y = position.y + (direction.y * distance);
 
-    return v;
+// operator assignment vector
+void Vector2d::operator+=(Vector2d const &a) {
+	x += a.x; y += a.y;
+}
+
+void Vector2d::operator-=(Vector2d const &a) {
+	x -= a.x; y -= a.y;
+}
+
+void Vector2d::operator*=(Vector2d const &a) {
+	x *= a.x; y *= a.y;
+}
+
+void Vector2d::operator/=(Vector2d const &a) {
+	x /= a.x; y /= a.y;
+}
+
+
+// operator assignment double
+void Vector2d::operator+=(const double &a) {
+	x += a; y += a;
+}
+
+void Vector2d::operator-=(const double &a) {
+	x -= a; y -= a;
+}
+
+void Vector2d::operator*=(const double &a) {
+	x *= a; y *= a;
+}
+
+void Vector2d::operator/=(const double &a) {
+	x /= a; y /= a;
 }

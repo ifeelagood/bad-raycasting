@@ -3,6 +3,7 @@
 #include <cmath>
 #include <omp.h>
 #include <CImg.h>
+#include <new>
 
 #include "quickcg.h"
 
@@ -15,6 +16,8 @@
 #include "player.h"
 
 #include "main.h"
+
+
 
 Config config("config.ini");
 
@@ -34,35 +37,27 @@ int level = 1;
 int** map;
 
 
-uint32_t** createBuffer()
+void putBuffer(uint32_t value, int x, int y, uint32_t* buffer)
+{
+    buffer[y*config.ScreenWidth+x] = value;
+}
+
+uint32_t* createBuffer()
 {
     int& h = config.ScreenHeight;
     int& w = config.ScreenWidth;
 
-    uint32_t** buffer = new uint32_t*[h];
-
-    for (int i = 0; i < h; i++)
-    {
-        buffer[i] = new uint32_t[w];
-    }
+    uint32_t* buffer = new uint32_t[w*h];
 
     return buffer;
 }
 
-void deleteBuffer(uint32_t** buffer)
+void deleteBuffer(uint32_t* buffer)
 {
-    int& h = config.ScreenHeight;
-    // int& w = config.ScreenWidth;
-
-    for (int i = 0; i < h; i++)
-    {
-            delete[] buffer[i];
-    }
-
     delete[] buffer;
 }
 
-void clearBuffer(uint32_t** buffer)
+void clearBuffer(uint32_t* buffer)
 {
     int& h = config.ScreenHeight;
     int& w = config.ScreenWidth;
@@ -71,7 +66,7 @@ void clearBuffer(uint32_t** buffer)
     {
         for (int x = 0; x < w; x++)
         {
-            buffer[y][x] = 0;
+            putBuffer(0, x, y, buffer);
         }
     }
 }
@@ -97,14 +92,21 @@ void getKeys()
     Keys.right = QuickCG::keyDown(SDL_SCANCODE_RIGHT);
 }
 
-void movePlayer(double moveSpeed)
+void movePlayer(double moveSpeed, bool strafe)
 {
-    Vector2d newPos = translate(player.position, player.direction, moveSpeed);
+    Vector2d moveDirection = player.direction;
 
+    if (strafe)
+    {
+        moveDirection.rotateByDeg(-90);
+    }
+
+    Vector2d newPos = translate(player.position, moveDirection, moveSpeed);
+    Vector2d newPaddedPos = translate(newPos, moveDirection, moveSpeed*5);
     Vector2i newMapPos;
 
-    newMapPos.x = (int) newPos.x;
-    newMapPos.y = (int) newPos.y;
+    newMapPos.x = (int) newPaddedPos.x;
+    newMapPos.y = (int) newPaddedPos.y;
 
     if (getMapTile(newMapPos.x, player.position.y) == 0)
     {
@@ -124,15 +126,20 @@ void handleInput(Player &player)
     double deltaRotSpeed  = config.RotationSpeed * timer.frameTime;
 
 
+    if (Keys.lshift == 1)
+    {
+        deltaMoveSpeed *= config.SprintMultSpeed;
+        deltaRotSpeed  *= config.SprintMultRotation;
+    }
+
     // left or right
-    if (Keys.a == 1) { player.rotate(-deltaRotSpeed); }
-    if (Keys.d == 1) { player.rotate( deltaRotSpeed); }
+    if (Keys.left  == 1) { player.rotate(-deltaRotSpeed); }
+    if (Keys.right == 1) { player.rotate( deltaRotSpeed); }
 
-
-    if (Keys.lshift == 1) { deltaMoveSpeed *= 1.7f; }
-
-    if (Keys.w == 1) { movePlayer( deltaMoveSpeed); }
-    if (Keys.s == 1) { movePlayer(-deltaMoveSpeed); }
+    if (Keys.w == 1) { movePlayer( deltaMoveSpeed, false); }
+    if (Keys.s == 1) { movePlayer(-deltaMoveSpeed, false); }
+    if (Keys.a == 1) { movePlayer( deltaMoveSpeed, true); }
+    if (Keys.d == 1) { movePlayer(-deltaMoveSpeed, true); }
 
 
     if (Keys.esc == 1) { done = true; }
@@ -170,7 +177,7 @@ double DDA(Vector2d &rayPosition, Vector2d &rayDirection, int &side, int &tile)
     else
     {
         mapStep.y = 1;
-        nextSideDistance.y = (mapPosition.y - player.position.y + 1.0f) * rayStep.y;
+        nextSideDistance.y = (mapPosition.y - player.position.y + 1.0f) * rayStep.y; //
     }
 
     // perform DDA loop
@@ -204,10 +211,55 @@ double DDA(Vector2d &rayPosition, Vector2d &rayDirection, int &side, int &tile)
     return perpendicularWallDistance;
 }
 
-void drawRays3D(uint32_t** buffer)
+void drawRayFlat(uint32_t* buffer, int x, int y1, int y2)
 {
-    #pragma omp parallel for
-    for (int x = 0; x < config.ScreenWidth; x++)
+    // int w = config.ScreenWidth;
+    int h = config.ScreenHeight;
+    uint32_t color = 0x00FF00FF;
+
+    // drawing 90 degrees to fill consecutively for caching
+    std::fill_n(buffer + x*h + y1, (y2 - y1), color); // everything from y1 to y2 as color
+}
+
+void drawRay(uint32_t* buffer, int x, int y1, int y2, int texID, double texX, double texOffset, double texStep)
+{
+    // int w = config.ScreenWidth;
+    int h = config.ScreenHeight;
+
+    for (int y = y1; y < y2; y++)
+    {
+        // cast texture coordinate to an integer, -1 incase of overflow
+        int texY = (int) texOffset & (texHeight - 1);
+        texOffset += texStep;
+
+        // 90 degree cache hack
+        uint32_t color = texture[texID][texX * texHeight + texY];
+
+        buffer[x*h+y] = color;
+    }
+}
+
+void calculateHitCoord(double& hitX, double distance, Vector2d& rayDirection, int side)
+{
+        if (side == 0) { hitX = player.position.y + distance * rayDirection.y; } // calculate exact hit position of the ray
+        else           { hitX = player.position.x + distance * rayDirection.x; }
+        hitX -= floor((hitX)); // minus the integer part
+}
+
+int calculateTextureColumn(double hitX, Vector2d& rayDirection, int side)
+{
+    int texX = int(hitX * double(texWidth));
+    if (side == 0 && rayDirection.x > 0) { texX = texWidth - texX - 1; }
+    if (side == 1 && rayDirection.y < 0) { texX = texWidth - texX - 1; }
+    return texX;
+}
+
+void castRays(uint32_t* buffer)
+{
+    int res = config.VerticalResolution;
+
+    // #pragma omp parallel for
+    for (int x = 0; x < config.ScreenWidth; x += res)
     {
         // determine vector for ray
         double cameraX = 2 * (double)x / (double)config.ScreenWidth - 1;
@@ -239,16 +291,10 @@ void drawRays3D(uint32_t** buffer)
         // texture calculations
 
         double hitX;
-
-        if (side == 0) { hitX = player.position.y + perpendicularWallDistance * rayDirection.y; } // calculate exact hit position of the ray
-        else           { hitX = player.position.x + perpendicularWallDistance * rayDirection.x; }
-        hitX -= floor((hitX)); // minus the integer part
+        calculateHitCoord(hitX, perpendicularWallDistance, rayDirection, side);
 
         // define x coordinate of texture
-
-        int texX = int(hitX * double(texWidth));
-        if (side == 0 && rayDirection.x > 0) { texX = texWidth - texX - 1; }
-        if (side == 1 && rayDirection.y < 0) { texX = texWidth - texX - 1; }
+        int texX = calculateTextureColumn(hitX, rayDirection, side);
 
         // more texture calculations
         double texStep = 1.0 * texHeight / lineHeight;
@@ -256,21 +302,20 @@ void drawRays3D(uint32_t** buffer)
 
         int texID = tile - 1; // so we can use 0th texture
 
-        // render
-        for (int y = y1; y < y2; y++)
+        // draw each line
+        for (int dx = x; dx < x+res; dx++)
         {
-            // cast texture coordinate to an integer, -1 incase of overflow
-            int texY =  (int)texOffset & (texHeight - 1);
-            texOffset += texStep;
-
-            uint32_t color = texture[texID][texHeight * texY + texX];
-
-            buffer[y][x] = color;
+            drawRay(buffer, dx, y1, y2, texID, texX, texOffset, texStep);
         }
+
+
+        // render
+
+        // drawRayFlat(buffer, x, y1, y2);
     }
 }
 
-void drawDebug()
+void drawDebug(uint32_t* buffer)
 {
     std::string fps_str = "FPS: " + std::to_string(timer.fps);
     // std::string avg_str = "AVG FPS / 10s: " + std::to_string(timer.getAverageFPS());
@@ -278,15 +323,75 @@ void drawDebug()
     std::string dir_str = "Directon: [" + std::to_string(player.direction.x) + ',' + std::to_string(player.direction.y) + ']';
     std::string cam_str = "Camera: [" + std::to_string(player.cameraPlane.x) + ',' + std::to_string(player.cameraPlane.y) + ']';
 
-    QuickCG::printString(fps_str, 10, 10);
+    QuickCG::printString(buffer, fps_str, 10, 10);
     //QuickCG::printString(avg_str, 10, 20);
-    QuickCG::printString(ftm_str, 10, 20);
-    QuickCG::printString(dir_str, 10, 30);
-    QuickCG::printString(cam_str, 10, 40);
+    QuickCG::printString(buffer, ftm_str, 10, 20);
+    QuickCG::printString(buffer, dir_str, 10, 30);
+    QuickCG::printString(buffer, cam_str, 10, 40);
 
 }
 
-void display(uint32_t** buffer)
+void drawBackground(uint32_t* buffer)
+{
+    int SH = config.ScreenHeight;
+    int SW = config.ScreenWidth;
+    int SW2 = SW/2 + 50;
+
+    // roof
+    for (int y = 0; y < SH; y++)
+    {
+        for (int x = 0; x < SW2; x++)
+        {
+            putBuffer(0x4D4D4DFF, x, y, buffer);
+        }
+    }
+
+    // floor
+    for (int y = 0; y < SH; y++)
+    {
+        for (int x = SW2; x < SW; x++)
+        {
+            putBuffer(0x888C8DFF, x, y, buffer);
+        }
+    }
+}
+
+void drawCrosshair(uint32_t* buffer, int size, int width)
+{
+    uint32_t color = 0x00FF00FF;
+
+    int SH2 = config.ScreenHeight/2;
+    int SW2 = config.ScreenWidth/2;
+
+    // left->right, for y width
+    int hx1, hx2, hy1, hy2;
+    hx1 = SW2-size; hy1 = SH2-width;
+    hx2 = SW2+size; hy2 = SH2+width;
+
+    for (int y = hy1; y < hy2; y++)
+    {
+        for (int x = hx1; x < hx2; x++)
+        {
+            putBuffer(color, x, y, buffer);
+        }
+    }
+
+    // top->bottom, for x width
+    int vx1, vx2, vy1, vy2;
+    vx1 = SW2-width; vy1 = SH2-size;
+    vx2 = SW2+width; vy2 = SH2+size;
+
+    for (int y = vy1; y < vy2; y++)
+    {
+        for (int x = vx1; x < vx2; x++)
+        {
+            putBuffer(color, x, y, buffer);
+        }
+    }
+
+}
+
+void display(uint32_t* buffer)
 {
     while (!done)
     {
@@ -295,13 +400,18 @@ void display(uint32_t** buffer)
         getKeys();
         handleInput(player);
         // rendering
-        drawRays3D(buffer);
-        QuickCG::drawBuffer(buffer);
-        clearBuffer(buffer);
+        drawBackground(buffer);
+        castRays(buffer);
+        drawCrosshair(buffer, 5, 1);
+        // QuickCG::drawBufferAVX(buffer);
+        // QuickCG::drawBuffer2(buffer);
 
+        if (Keys.tab == 1) { drawDebug(buffer); }
+        QuickCG::redraw(buffer);
+        clearBuffer(buffer);
         timer.update(QuickCG::getTicks());
-        if (Keys.tab == 1) { drawDebug(); }
-        QuickCG::redraw();
+
+
     }
 }
 
@@ -309,14 +419,23 @@ void display(uint32_t** buffer)
 int main()
 {
     // create buffer
-    uint32_t** buffer = createBuffer();
+    uint32_t* buffer = createBuffer();
 
 
     // initialise player
     player.position = Vector2d(1.5, 1.5);
-    player.direction = Vector2d(-1.0, 0.0);
+    player.direction = Vector2d(-1.0, 0);
 
-    player.cameraFix(); // fix camera vector perpendicular to player direction
+    // fix camera perpendicular to view direction
+    player.cameraPlane.x =  player.direction.y;
+    player.cameraPlane.y = -player.direction.x;
+
+    // scale the length of the camera vector by
+    // half of the aspect ratio
+    double r = (double) config.ScreenWidth / (double) config.ScreenHeight;
+    double cameraMult = r / 2.0;
+    player.cameraPlane *= cameraMult;
+
     player.rotate(180);
 
 

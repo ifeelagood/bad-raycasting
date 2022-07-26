@@ -200,11 +200,12 @@ bool keyPressed(int key); //this checks if the key is *just* pressed, returns tr
 void screen(int width = 640, int height = 400, bool fullscreen = 0, const std::string& text = " ");
 void lock();
 void unlock();
-void redraw();
+void redraw(Uint32* buffer);
 void cls(const ColorRGBA& color = RGB_Black);
 void pset(int x, int y, const ColorRGBA& color);
 ColorRGBA pget(int x, int y);
-void drawBuffer(Uint32** buffer);
+void drawBuffer(Uint32* buffer);
+void drawBufferAVX(Uint32* buffer);
 // void drawBufferP2P(Uint32** buffer);
 bool onScreen(int x, int y);
 
@@ -265,24 +266,24 @@ int decodePNG(std::vector<unsigned char>& out_image_32bit, unsigned long& image_
 //TEXT FUNCTIONS////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 extern bool font[256][8][8];
-void drawLetter(unsigned char n, int x, int y, const ColorRGBA& color = RGB_White, bool bg = 0, const ColorRGBA& color2 = RGB_Black);
-int printString(const std::string& text, int x = 0, int y = 0, const ColorRGBA& color = RGB_White, bool bg = 0, const ColorRGBA& color2 = RGB_Black, int forceLength = 0);
+void drawLetter(uint32_t* buffer, unsigned char n, int x, int y, const ColorRGBA& color = RGB_White, bool bg = 0, const ColorRGBA& color2 = RGB_Black);
+int printString(uint32_t* buffer, const std::string& text, int x = 0, int y = 0, const ColorRGBA& color = RGB_White, bool bg = 0, const ColorRGBA& color2 = RGB_Black, int forceLength = 0);
 
 //print something (string, int, float, ...)
-template<typename T>
-int print(const T& val, int x = 0, int y = 0, const ColorRGBA& color = RGB_White, bool bg = 0, const ColorRGBA& color2 = RGB_Black, int forceLength = 0)
-{
-  std::string text = valtostr(val);
-  return printString(text, x, y, color, bg, color2, forceLength);
-}
+// template<typename T>
+// int print(const T& val, int x = 0, int y = 0, const ColorRGBA& color = RGB_White, bool bg = 0, const ColorRGBA& color2 = RGB_Black, int forceLength = 0)
+// {
+//   std::string text = valtostr(val);
+//   return printString(text, x, y, color, bg, color2, forceLength);
+// }
 
 //print some floating point number, this one allows printing floating point numbers with limited length
-template<typename T>
-int fprint(const T& val, int length, int x = 0, int y = 0, const ColorRGBA& color = RGB_White, bool bg = 0, const ColorRGBA& color2 = RGB_Black, int forceLength = 0)
-{
-  std::string text = valtostr(val, length, true);
-  return printString(text, x, y, color, bg, color2, forceLength);
-}
+// template<typename T>
+// int fprint(const T& val, int length, int x = 0, int y = 0, const ColorRGBA& color = RGB_White, bool bg = 0, const ColorRGBA& color2 = RGB_Black, int forceLength = 0)
+// {
+//   std::string text = valtostr(val, length, true);
+//   return printString(text, x, y, color, bg, color2, forceLength);
+// }
 
 ////////////////////////////////////////////////////////////////////////////////
 //TEXT INPUT FUNCTIONS//////////////////////////////////////////////////////////
